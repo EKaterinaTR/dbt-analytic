@@ -14,3 +14,9 @@ docker compose up -d --build
 ```
 
 Airflow: http://localhost:8080 (admin / admin).
+
+## Конфиг через Airflow Variables
+
+Параметры подключения к MongoDB и PostgreSQL задаются в **Admin → Variables**. Значения по умолчанию подставляются при первом запуске из файла **`airflow/variables_default.json`** (импорт в шаге `airflow-init`). Файл можно править в репозитории — после пересоздания БД Airflow переменные снова загрузятся из него.
+
+При необходимости переменные можно переопределить в UI (Admin → Variables); они хранятся в метаданных Airflow.

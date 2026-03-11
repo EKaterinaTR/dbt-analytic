@@ -1,0 +1,10 @@
+{
+  "MONGODB_URI": "mongodb://root:example@host.docker.internal:27017/?authSource=admin",
+  "MONGODB_DB": "sensors",
+  "MONGODB_COLLECTION": "measurements",
+  "PG_HOST": "postgres",
+  "PG_PORT": "5432",
+  "PG_USER": "airflow",
+  "PG_PASSWORD": "airflow",
+  "PG_ANALYTICS_DB": "analytics"
+}

@@ -1,6 +1,6 @@
 """
-DAG: EL — извлечение из MongoDB (на хосте, порт 27017) и загрузка в PostgreSQL.
-Переменные MONGODB_URI, PG_* задаются в docker-compose аналитики.
+DAG: EL — извлечение из MongoDB и загрузка в PostgreSQL.
+Конфиг (MONGODB_URI, PG_*) — Airflow Variables (или variables_default.json при инициализации).
 """
 from datetime import datetime, timedelta
 from airflow import DAG

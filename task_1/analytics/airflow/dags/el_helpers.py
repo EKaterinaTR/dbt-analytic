@@ -1,27 +1,33 @@
 """
 Общая логика для PythonOperator: EL (MongoDB → PostgreSQL) и генерация данных в MongoDB.
-Переменные окружения (MONGODB_URI, PG_*) задаются в docker-compose аналитики.
+Конфиг берётся из Airflow Variables (Admin → Variables), при отсутствии — значения по умолчанию.
 """
-import os
 import random
 from datetime import datetime, timezone
 
+from airflow.models import Variable
 from pymongo import MongoClient
 import psycopg2
 from psycopg2.extras import execute_values
 
-# MongoDB
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://root:example@host.docker.internal:27017/?authSource=admin")
-MONGODB_DB = os.getenv("MONGODB_DB", "sensors")
-MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "measurements")
-
-# PostgreSQL
-PG_HOST = os.getenv("PG_HOST", "postgres")
-PG_PORT = int(os.getenv("PG_PORT", "5432"))
-PG_USER = os.getenv("PG_USER", "airflow")
-PG_PASSWORD = os.getenv("PG_PASSWORD", "airflow")
-PG_ANALYTICS_DB = os.getenv("PG_ANALYTICS_DB", "analytics")
 PG_TABLE = "sensor_measurements"
+
+
+def _get_config():
+    """Читает конфиг из Airflow Variables с fallback на дефолты."""
+    return {
+        "MONGODB_URI": Variable.get(
+            "MONGODB_URI",
+            default_var="mongodb://root:example@host.docker.internal:27017/?authSource=admin",
+        ),
+        "MONGODB_DB": Variable.get("MONGODB_DB", default_var="sensors"),
+        "MONGODB_COLLECTION": Variable.get("MONGODB_COLLECTION", default_var="measurements"),
+        "PG_HOST": Variable.get("PG_HOST", default_var="postgres"),
+        "PG_PORT": int(Variable.get("PG_PORT", default_var="5432")),
+        "PG_USER": Variable.get("PG_USER", default_var="airflow"),
+        "PG_PASSWORD": Variable.get("PG_PASSWORD", default_var="airflow"),
+        "PG_ANALYTICS_DB": Variable.get("PG_ANALYTICS_DB", default_var="analytics"),
+    }
 
 
 def _parse_recorded_at(recorded_at):
@@ -35,10 +41,10 @@ def _parse_recorded_at(recorded_at):
     return datetime.utcnow()
 
 
-def _extract_from_mongo():
-    client = MongoClient(MONGODB_URI)
-    db = client[MONGODB_DB]
-    coll = db[MONGODB_COLLECTION]
+def _extract_from_mongo(cfg):
+    client = MongoClient(cfg["MONGODB_URI"])
+    db = client[cfg["MONGODB_DB"]]
+    coll = db[cfg["MONGODB_COLLECTION"]]
     rows = []
     for doc in coll.find():
         recorded_at = _parse_recorded_at(doc.get("recorded_at", datetime.utcnow()))
@@ -53,13 +59,13 @@ def _extract_from_mongo():
     return rows
 
 
-def _load_to_postgres(rows):
+def _load_to_postgres(cfg, rows):
     conn = psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        user=PG_USER,
-        password=PG_PASSWORD,
-        dbname=PG_ANALYTICS_DB,
+        host=cfg["PG_HOST"],
+        port=cfg["PG_PORT"],
+        user=cfg["PG_USER"],
+        password=cfg["PG_PASSWORD"],
+        dbname=cfg["PG_ANALYTICS_DB"],
     )
     cur = conn.cursor()
     if not rows:
@@ -93,30 +99,12 @@ def _load_to_postgres(rows):
 
 
 def run_el(**context):
-    """Извлечение из MongoDB и загрузка в PostgreSQL. Вызывается из PythonOperator."""
-    rows = _extract_from_mongo()
-    context.get("ti").xcom_push(key="extracted_count", value=len(rows))
+    """Извлечение из MongoDB и загрузка в PostgreSQL. Конфиг из Airflow Variables."""
+    cfg = _get_config()
+    rows = _extract_from_mongo(cfg)
+    context["ti"].xcom_push(key="extracted_count", value=len(rows))
     if not rows:
         return
-    inserted = _load_to_postgres(rows)
+    inserted = _load_to_postgres(cfg, rows)
     context["ti"].xcom_push(key="inserted_count", value=inserted)
 
-
-def run_generate_sensor_data(count: int = 5, **context):
-    """Записывает count измерений в MongoDB. Вызывается из PythonOperator."""
-    client = MongoClient(MONGODB_URI)
-    db = client[MONGODB_DB]
-    coll = db[MONGODB_COLLECTION]
-    inserted = 0
-    for _ in range(count):
-        doc = {
-            "_id": f"airflow_{datetime.now(timezone.utc).isoformat()}_{random.getrandbits(32)}",
-            "temperature_celsius": round(random.uniform(18.0, 28.0), 2),
-            "humidity_percent": round(random.uniform(30.0, 80.0), 2),
-            "air_quality_aqi": random.randint(0, 150),
-            "recorded_at": datetime.now(timezone.utc).isoformat(),
-        }
-        coll.insert_one(doc)
-        inserted += 1
-    client.close()
-    context["ti"].xcom_push(key="inserted_count", value=inserted)
