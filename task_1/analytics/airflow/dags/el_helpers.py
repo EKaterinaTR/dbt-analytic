@@ -3,6 +3,7 @@
 Конфиг берётся из Airflow Variables (Admin → Variables), при отсутствии — значения по умолчанию.
 """
 import random
+import requests
 from datetime import datetime, timezone
 
 from airflow.models import Variable
@@ -27,6 +28,7 @@ def _get_config():
         "PG_USER": Variable.get("PG_USER", default_var="airflow"),
         "PG_PASSWORD": Variable.get("PG_PASSWORD", default_var="airflow"),
         "PG_ANALYTICS_DB": Variable.get("PG_ANALYTICS_DB", default_var="analytics"),
+        "SENSOR_API_URL": Variable.get("SENSOR_API_URL", default_var="http://host.docker.internal:8000"),
     }
 
 
@@ -107,4 +109,18 @@ def run_el(**context):
         return
     inserted = _load_to_postgres(cfg, rows)
     context["ti"].xcom_push(key="inserted_count", value=inserted)
+
+
+def trigger_sensor_api(**context):
+    """Вызывает API приложения для генерации одной записи в MongoDB."""
+    cfg = _get_config()
+    url = cfg["SENSOR_API_URL"].rstrip("/") + "/measurements/generate"
+    try:
+        resp = requests.post(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        context["ti"].xcom_push(key="api_ok", value=data.get("ok", False))
+        return data
+    except Exception as e:
+        raise RuntimeError(f"Сбой вызова API датчиков {url}: {e}")
 

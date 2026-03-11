@@ -6,5 +6,6 @@
   "PG_PORT": "5432",
   "PG_USER": "airflow",
   "PG_PASSWORD": "airflow",
-  "PG_ANALYTICS_DB": "analytics"
+  "PG_ANALYTICS_DB": "analytics",
+  "SENSOR_API_URL": "http://host.docker.internal:8000"
 }

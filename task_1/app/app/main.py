@@ -1,21 +1,26 @@
 """
-Сервис датчиков: записывает в MongoDB данные о температуре, влажности и качестве воздуха.
-Имитирует показания сенсоров для демонстрации EL-пайплайна.
+Сервис датчиков: API для генерации измерений в MongoDB (температура, влажность, AQI).
+По запросу генерирует одну запись и пишет в MongoDB. Вызов из Airflow по расписанию.
 """
 import os
-import time
 import random
 from datetime import datetime, timezone
 from pymongo import MongoClient
+from fastapi import FastAPI, HTTPException
 
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://root:example@localhost:27017/?authSource=admin")
 MONGODB_DB = os.getenv("MONGODB_DB", "sensors")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "measurements")
-INTERVAL_SECONDS = int(os.getenv("INTERVAL_SECONDS", "30"))
+
+app = FastAPI(title="Sensor API", description="Генерация измерений по запросу")
+_client = None
 
 
 def get_client():
-    return MongoClient(MONGODB_URI)
+    global _client
+    if _client is None:
+        _client = MongoClient(MONGODB_URI)
+    return _client
 
 
 def generate_measurement():
@@ -38,20 +43,26 @@ def write_measurement(client):
     return doc
 
 
-def run_loop():
-    """Цикл записи измерений с заданным интервалом."""
-    client = get_client()
-    print(f"Подключение к MongoDB, БД={MONGODB_DB}, коллекция={MONGODB_COLLECTION}")
-    print(f"Интервал записи: {INTERVAL_SECONDS} сек. Остановка: Ctrl+C")
-    while True:
-        try:
-            doc = write_measurement(client)
-            print(f"[{datetime.now().isoformat()}] Записано: temp={doc['temperature_celsius']}°C, "
-                  f"humidity={doc['humidity_percent']}%, aqi={doc['air_quality_aqi']}")
-        except Exception as e:
-            print(f"Ошибка записи: {e}")
-        time.sleep(INTERVAL_SECONDS)
+@app.post("/measurements/generate")
+def generate_and_save():
+    """Генерирует одну случайную запись и сохраняет в MongoDB. Вызывается из Airflow."""
+    try:
+        client = get_client()
+        doc = write_measurement(client)
+        return {
+            "ok": True,
+            "measurement": {
+                "id": str(doc["_id"]),
+                "temperature_celsius": doc["temperature_celsius"],
+                "humidity_percent": doc["humidity_percent"],
+                "air_quality_aqi": doc["air_quality_aqi"],
+                "recorded_at": doc["recorded_at"],
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-if __name__ == "__main__":
-    run_loop()
+@app.get("/health")
+def health():
+    return {"status": "ok"}

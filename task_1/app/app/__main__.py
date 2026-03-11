@@ -1,4 +1,4 @@
-from app.main import run_loop
+import uvicorn
 
 if __name__ == "__main__":
-    run_loop()
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000)
