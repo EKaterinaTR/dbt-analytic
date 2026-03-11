@@ -1,0 +1,55 @@
+# Staging models: описание и тесты
+version: 2
+
+models:
+  - name: stg_sensors
+    description: "Staging слой справочника датчиков. Приведение типов (installed_at, created_at)."
+    columns:
+      - name: sensor_id
+        description: "Уникальный идентификатор датчика (FK из measurements)."
+        tests: [unique, not_null]
+      - name: sensor_pk
+      - name: name
+      - name: location_code
+      - name: installed_at
+      - name: created_at
+
+  - name: stg_measurements
+    description: "Staging слой измерений. Добавлено поле recorded_date для витрин."
+    columns:
+      - name: measurement_id
+        description: "Уникальный идентификатор измерения."
+        tests: [unique, not_null]
+      - name: sensor_id
+        description: "Ссылка на датчик (relationship к stg_sensors)."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_sensors')
+              field: sensor_id
+      - name: temperature_celsius
+      - name: humidity_percent
+      - name: air_quality_aqi
+      - name: recorded_at
+        tests: [not_null]
+      - name: recorded_date
+      - name: created_at
+
+  - name: stg_alerts
+    description: "Staging слой алертов. Связь с измерениями по measurement_id."
+    columns:
+      - name: alert_id
+        description: "Уникальный идентификатор алерта."
+        tests: [unique, not_null]
+      - name: measurement_id
+        description: "Ссылка на измерение (relationship к stg_measurements)."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_measurements')
+              field: measurement_id
+      - name: severity
+        tests: [not_null]
+      - name: created_at
+        tests: [not_null]
+      - name: loaded_at

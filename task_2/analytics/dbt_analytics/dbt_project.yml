@@ -1,0 +1,39 @@
+# Task 2: DBT project for analytics (PostgreSQL)
+# Sources: raw.sensor_measurements, raw.sensors, raw.alerts (loaded by Airflow EL)
+
+name: "dbt_analytics"
+version: "1.0.0"
+config-version: 2
+profile: "dbt_analytics"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  dbt_analytics:
+    staging:
+      +schema: staging
+      +tags:
+        - stg
+    ods:
+      +schema: ods
+      +tags:
+        - ods
+    marts:
+      +schema: marts
+      +tags:
+        - dm
+  elementary:
+    +schema: elementary
+
+vars:
+  alert_retention_days: 30

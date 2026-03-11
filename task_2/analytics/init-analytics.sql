@@ -1,0 +1,46 @@
+-- Task 2: расширенная схема для DBT (sensors, sensor_measurements + sensor_id, alerts)
+CREATE DATABASE analytics;
+\c analytics;
+
+-- Справочник датчиков (из MongoDB sensors)
+CREATE TABLE IF NOT EXISTS sensors (
+    id SERIAL PRIMARY KEY,
+    sensor_id VARCHAR(64) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    location_code VARCHAR(32),
+    installed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Измерения (из MongoDB measurements), с ссылкой на датчик
+CREATE TABLE IF NOT EXISTS sensor_measurements (
+    id SERIAL PRIMARY KEY,
+    measurement_id VARCHAR(64) UNIQUE NOT NULL,
+    sensor_id VARCHAR(64),
+    temperature_celsius NUMERIC(5, 2) NOT NULL,
+    humidity_percent NUMERIC(5, 2) NOT NULL,
+    air_quality_aqi INTEGER,
+    recorded_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sensor_recorded_at ON sensor_measurements(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_sensor_measurements_sensor_id ON sensor_measurements(sensor_id);
+
+-- Алерты (из MongoDB alerts) — для витрины с insert+delete
+CREATE TABLE IF NOT EXISTS alerts (
+    id SERIAL PRIMARY KEY,
+    alert_id VARCHAR(128) UNIQUE NOT NULL,
+    measurement_id VARCHAR(64) NOT NULL,
+    severity VARCHAR(32) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    loaded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at);
+CREATE INDEX IF NOT EXISTS idx_alerts_measurement_id ON alerts(measurement_id);
+
+GRANT ALL PRIVILEGES ON DATABASE analytics TO airflow;
+GRANT ALL ON SCHEMA public TO airflow;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO airflow;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO airflow;

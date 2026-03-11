@@ -1,0 +1,40 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw tables loaded by Airflow EL from MongoDB (sensors, measurements, alerts)."
+    database: "{{ target.dbname }}"
+    schema: public
+    tables:
+      - name: sensor_measurements
+        description: "Raw sensor measurements (temperature, humidity, AQI) with sensor_id and recorded_at."
+        identifier: sensor_measurements
+        columns:
+          - name: id
+          - name: measurement_id
+          - name: sensor_id
+          - name: temperature_celsius
+          - name: humidity_percent
+          - name: air_quality_aqi
+          - name: recorded_at
+          - name: created_at
+      - name: sensors
+        description: "Raw sensor reference (sensor_id, name, location_code, installed_at)."
+        identifier: sensors
+        columns:
+          - name: id
+          - name: sensor_id
+          - name: name
+          - name: location_code
+          - name: installed_at
+          - name: created_at
+      - name: alerts
+        description: "Raw alerts (alert_id, measurement_id, severity, created_at)."
+        identifier: alerts
+        columns:
+          - name: id
+          - name: alert_id
+          - name: measurement_id
+          - name: severity
+          - name: created_at
+          - name: loaded_at

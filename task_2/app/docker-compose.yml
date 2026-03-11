@@ -1,0 +1,41 @@
+version: "3.8"
+
+# Task 2: Python-сервис датчиков + MongoDB (sensors, measurements, alerts).
+# Порт 27017 проброшен на хост — к MongoDB подключается Airflow.
+
+services:
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "27017:27017"
+
+  sensor-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: task_2-app-sensor:latest
+    environment:
+      MONGODB_URI: mongodb://root:example@mongodb:27017/?authSource=admin
+      MONGODB_DB: sensors
+      MONGODB_COLLECTION: measurements
+      MONGODB_SENSORS: sensors
+      MONGODB_ALERTS: alerts
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+
+volumes:
+  mongodb_data:

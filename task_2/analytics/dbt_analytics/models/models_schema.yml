@@ -1,0 +1,43 @@
+# ODS и Marts: описание и тесты
+version: 2
+
+models:
+  - name: ods_measurements
+    description: "ODS слой измерений. Только валидные: sensor_id не пустой, recorded_at не в будущем."
+    columns:
+      - name: measurement_id
+      - name: sensor_id
+      - name: temperature_celsius
+      - name: humidity_percent
+      - name: air_quality_aqi
+      - name: recorded_at
+      - name: recorded_date
+
+  - name: ods_sensors
+    description: "ODS слой датчиков. Очистка пустых name/location_code."
+    columns:
+      - name: sensor_id
+      - name: name
+      - name: location_code
+      - name: installed_at
+
+  - name: dm_daily_measurements
+    description: "Витрина: дневные агрегаты по датчику. Incremental merge по (recorded_date, sensor_id)."
+    columns:
+      - name: recorded_date
+      - name: sensor_id
+      - name: measurement_count
+      - name: avg_temperature_celsius
+      - name: avg_humidity_percent
+      - name: avg_air_quality_aqi
+      - name: last_recorded_at
+
+  - name: dm_alerts_recent
+    description: "Витрина: алерты за последние N дней. Incremental append + pre_hook delete (insert+delete стратегия)."
+    columns:
+      - name: alert_id
+      - name: measurement_id
+      - name: severity
+      - name: created_at
+      - name: sensor_id
+      - name: measurement_recorded_at
