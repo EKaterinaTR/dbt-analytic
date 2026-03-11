@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sensor-config
+  namespace: task2-app
+data:
+  MONGODB_DB: sensors
+  MONGODB_COLLECTION: measurements
+  MONGODB_SENSORS: sensors
+  MONGODB_ALERTS: alerts

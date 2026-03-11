@@ -1,0 +1,47 @@
+# Optional: Ingress for external access to Sensor API and Airflow UI.
+# Adjust host, annotations and backend service names to match your cluster (nginx, traefik, etc.).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task2-ingress
+  namespace: task2-analytics
+  annotations:
+    # nginx example:
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: airflow.task2.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: airflow-webserver
+                namespace: task2-analytics
+                port:
+                  number: 8080
+---
+# Ingress for sensor API (in app namespace). Use one Ingress or split by host.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: task2-app-ingress
+  namespace: task2-app
+  annotations: {}
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sensor-api.task2.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sensor-service
+                namespace: task2-app
+                port:
+                  number: 8000

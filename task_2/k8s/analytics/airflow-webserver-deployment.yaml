@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-webserver
+  namespace: task2-analytics
+  labels:
+    app: airflow-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-webserver
+  template:
+    metadata:
+      labels:
+        app: airflow-webserver
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: your-registry/task2-airflow:latest
+          imagePullPolicy: Always
+          command: ["bash", "-c", "until airflow db check 2>/dev/null; do echo waiting for airflow db; sleep 5; done; echo db ready"]
+          envFrom:
+            - secretRef:
+                name: airflow-secret
+      containers:
+        - name: webserver
+          image: your-registry/task2-airflow:latest
+          imagePullPolicy: Always
+          env:
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: LocalExecutor
+            - name: AIRFLOW__CORE__LOAD_EXAMPLES
+              value: "false"
+            - name: AIRFLOW__CORE__FERNET_KEY
+              value: ""
+            - name: AIRFLOW_UID
+              value: "50000"
+          envFrom:
+            - secretRef:
+                name: airflow-secret
+            - configMapRef:
+                name: airflow-config
+          command: ["webserver"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: dags
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: dags
+          configMap:
+            name: airflow-dags

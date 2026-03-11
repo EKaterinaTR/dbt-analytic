@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-variables
+  namespace: task2-analytics
+data:
+  variables_default.json: |
+    {
+      "MONGODB_URI": "mongodb://root:example@mongodb.task2-app.svc.cluster.local:27017/?authSource=admin",
+      "MONGODB_DB": "sensors",
+      "MONGODB_COLLECTION": "measurements",
+      "MONGODB_SENSORS": "sensors",
+      "MONGODB_ALERTS": "alerts",
+      "PG_HOST": "postgres",
+      "PG_PORT": "5432",
+      "PG_USER": "airflow",
+      "PG_PASSWORD": "airflow",
+      "PG_ANALYTICS_DB": "analytics",
+      "SENSOR_API_URL": "http://sensor-service.task2-app.svc.cluster.local:8000"
+    }

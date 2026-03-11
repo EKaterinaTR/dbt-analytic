@@ -1,0 +1,13 @@
+# Build from task_2/analytics: docker build -f Dockerfile.airflow-k8s -t your-registry/task2-airflow:latest .
+FROM apache/airflow:2.7.3-python3.11
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+RUN pip install --no-cache-dir pymongo psycopg2-binary requests dbt-postgres
+
+# Embed dbt project so no extra volume is needed in K8s
+COPY --chown=airflow:airflow dbt_analytics /opt/airflow/dbt_analytics
