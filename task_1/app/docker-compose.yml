@@ -1,0 +1,38 @@
+version: "3.8"
+
+# Приложение: Python-сервис датчиков + MongoDB (источник данных).
+# Порт 27017 проброшен на хост — к MongoDB подключается аналитический стек (Airflow).
+
+services:
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "27017:27017"
+
+  sensor-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: task_1-app-sensor:latest
+    environment:
+      MONGODB_URI: mongodb://root:example@mongodb:27017/?authSource=admin
+      MONGODB_DB: sensors
+      MONGODB_COLLECTION: measurements
+      INTERVAL_SECONDS: "30"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: python -m app
+
+volumes:
+  mongodb_data:
