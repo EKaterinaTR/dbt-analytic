@@ -1,0 +1,64 @@
+# Деплой в Kubernetes (ручной запуск или по тегу).
+# Требует: секрет KUBE_CONFIG (kubeconfig в base64) или интеграцию с GKE/EKS/AKS.
+
+name: Deploy to Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag (SHA or "latest")'
+        required: true
+        default: 'latest'
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # environment: production  # раскомментировать для защиты и секретов через GitHub Environments
+    env:
+      REGISTRY: ghcr.io
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.image_tag || 'latest' }}" >> $GITHUB_OUTPUT
+          fi
+          echo "Image tag: ${{ steps.tag.outputs.tag }}"
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+        # Альтернатива для GKE: use google-github-actions/auth + get-gke-credentials
+        # Альтернатива для EKS: use aws-actions/configure-aws-credentials + aws-actions/eks-get-token
+
+      - name: Deploy App (sensor + MongoDB)
+        run: |
+          cd task_2/k8s/app
+          kustomize edit set image your-registry/task2-sensor:latest=${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}
+          kustomize build . | kubectl apply -f -
+        env:
+          REGISTRY: ghcr.io
+
+      - name: Deploy Analytics (PostgreSQL + Airflow)
+        run: |
+          cd task_2/k8s/analytics
+          IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow:${{ steps.tag.outputs.tag }}"
+          kustomize edit set image your-registry/task2-airflow:latest=$IMG
+          kustomize build . | kubectl apply -f -
+        # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow
