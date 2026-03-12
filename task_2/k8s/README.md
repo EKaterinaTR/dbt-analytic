@@ -29,14 +29,14 @@ From repo root:
 
 ```bash
 cd task_2/scripts
-export REGISTRY=your-registry   # e.g. docker.io/myuser or ghcr.io/myorg
+export REGISTRY=your-registry   # e.g. docker.io/myuser or ghcr.io/ekaterinatr
 bash build-push-images.sh
 ```
 
-Then set the same image names in the manifests (search for `your-registry` and replace):
+Then set the same image names in the manifests (or use the default `ghcr.io/ekaterinatr/dbt-analytic/...` already in the repo):
 
-- `task_2/k8s/app/sensor-deployment.yaml` → `image: $REGISTRY/task2-sensor:latest`
-- `task_2/k8s/analytics/airflow-db-init-job.yaml` → `image: $REGISTRY/task2-airflow:latest`
+- `task_2/k8s/app/sensor-deployment.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest` (or $REGISTRY/…)
+- `task_2/k8s/analytics/airflow-*.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest` (or $REGISTRY/…)
 - `task_2/k8s/analytics/airflow-webserver-deployment.yaml` → same
 - `task_2/k8s/analytics/airflow-scheduler-deployment.yaml` → same
 

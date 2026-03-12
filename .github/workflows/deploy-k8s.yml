@@ -50,7 +50,7 @@ jobs:
       - name: Deploy App (sensor + MongoDB)
         run: |
           cd task_2/k8s/app
-          kustomize edit set image your-registry/task2-sensor:latest=${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}
+          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest=${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}
           kustomize build . | kubectl apply -f -
         env:
           REGISTRY: ghcr.io
@@ -59,6 +59,6 @@ jobs:
         run: |
           cd task_2/k8s/analytics
           IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow:${{ steps.tag.outputs.tag }}"
-          kustomize edit set image your-registry/task2-airflow:latest=$IMG
+          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest=$IMG
           kustomize build . | kubectl apply -f -
         # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow

@@ -20,7 +20,7 @@ spec:
           command: ["sh", "-c", "until pg_isready -h postgres -U airflow; do echo waiting for postgres; sleep 2; done; echo postgres ready"]
       containers:
         - name: airflow-init
-          image: your-registry/task2-airflow:latest
+          image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest
           imagePullPolicy: Always
           env:
             - name: AIRFLOW__CORE__EXECUTOR

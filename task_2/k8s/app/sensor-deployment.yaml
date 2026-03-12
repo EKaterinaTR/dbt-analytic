@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: sensor-service
-          image: your-registry/task2-sensor:latest
+          image: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

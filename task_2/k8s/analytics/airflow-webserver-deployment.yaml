@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-db
-          image: your-registry/task2-airflow:latest
+          image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest
           imagePullPolicy: Always
           command: ["bash", "-c", "until airflow db check 2>/dev/null; do echo waiting for airflow db; sleep 5; done; echo db ready"]
           envFrom:
@@ -25,7 +25,7 @@ spec:
                 name: airflow-secret
       containers:
         - name: webserver
-          image: your-registry/task2-airflow:latest
+          image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest
           imagePullPolicy: Always
           env:
             - name: AIRFLOW__CORE__EXECUTOR
