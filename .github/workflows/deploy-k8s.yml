@@ -54,9 +54,11 @@ jobs:
           set -e
           cd task_2/k8s/app
           SENSOR_IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}"
-          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest="$SENSOR_IMG"
-          kustomize edit set image ghcr.io/EKaterinaTR/dbt-analytic/task2-sensor:latest="$SENSOR_IMG"
-          kustomize edit set image your-registry/task2-sensor:latest="$SENSOR_IMG"
+          for f in *.yaml; do
+            sed -i "s|ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest|$SENSOR_IMG|g" "$f"
+            sed -i "s|ghcr.io/EKaterinaTR/dbt-analytic/task2-sensor:latest|$SENSOR_IMG|g" "$f"
+            sed -i "s|your-registry/task2-sensor:latest|$SENSOR_IMG|g" "$f"
+          done
           kustomize build . | kubectl apply -f -
         env:
           REGISTRY: ghcr.io
@@ -66,9 +68,11 @@ jobs:
           set -e
           cd task_2/k8s/analytics
           IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow:${{ steps.tag.outputs.tag }}"
-          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest="$IMG"
-          kustomize edit set image ghcr.io/EKaterinaTR/dbt-analytic/task2-airflow:latest="$IMG"
-          kustomize edit set image your-registry/task2-airflow:latest="$IMG"
+          for f in *.yaml; do
+            sed -i "s|ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest|$IMG|g" "$f"
+            sed -i "s|ghcr.io/EKaterinaTR/dbt-analytic/task2-airflow:latest|$IMG|g" "$f"
+            sed -i "s|your-registry/task2-airflow:latest|$IMG|g" "$f"
+          done
           kustomize build . | kubectl apply -f -
         # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow
 
