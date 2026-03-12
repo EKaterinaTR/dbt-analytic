@@ -65,4 +65,4 @@ jobs:
 
       - name: Restart Airflow deployments (ensure new image is pulled)
         run: |
-          kubectl rollout restart deployment/airflow-webserver deployment/airflow-scheduler -n task2-analytics --timeout=60s || true
+          kubectl rollout restart deployment/airflow-webserver deployment/airflow-scheduler -n task2-analytics
