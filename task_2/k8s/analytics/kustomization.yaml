@@ -15,3 +15,4 @@ resources:
   - airflow-webserver-deployment.yaml
   - airflow-webserver-service.yaml
   - airflow-scheduler-deployment.yaml
+  - airflow-scheduler-service.yaml

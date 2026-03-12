@@ -15,6 +15,7 @@ spec:
       labels:
         app: airflow-scheduler
     spec:
+      hostname: airflow-scheduler
       initContainers:
         - name: wait-for-db
           image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest
@@ -55,6 +56,9 @@ spec:
             - configMapRef:
                 name: airflow-config
           command: ["bash", "-c", "airflow scheduler"]
+          ports:
+            - containerPort: 8793
+              name: log-server
           volumeMounts:
             - name: dags
               mountPath: /opt/airflow/dags
