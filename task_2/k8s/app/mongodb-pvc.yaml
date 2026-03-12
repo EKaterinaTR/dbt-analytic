@@ -6,6 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: fast.ru-7a
   resources:
     requests:
       storage: 2Gi
