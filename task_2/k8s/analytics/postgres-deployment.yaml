@@ -22,6 +22,8 @@ spec:
         - name: postgres
           image: postgres:15-alpine
           env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
               value: airflow
             - name: POSTGRES_PASSWORD
