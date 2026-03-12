@@ -41,7 +41,7 @@ spec:
                 name: airflow-secret
             - configMapRef:
                 name: airflow-config
-          command: ["scheduler"]
+          command: ["bash", "-c", "airflow scheduler"]
           volumeMounts:
             - name: dags
               mountPath: /opt/airflow/dags
