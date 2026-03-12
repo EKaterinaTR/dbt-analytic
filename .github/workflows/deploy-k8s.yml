@@ -62,3 +62,7 @@ jobs:
           kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest=$IMG
           kustomize build . | kubectl apply -f -
         # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow
+
+      - name: Restart Airflow deployments (ensure new image is pulled)
+        run: |
+          kubectl rollout restart deployment/airflow-webserver deployment/airflow-scheduler -n task2-analytics --timeout=60s || true
