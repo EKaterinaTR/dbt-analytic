@@ -15,6 +15,9 @@ spec:
       labels:
         app: postgres
     spec:
+      # Права на том: postgres в образе postgres:15-alpine — UID/GID 70
+      securityContext:
+        fsGroup: 70
       containers:
         - name: postgres
           image: postgres:15-alpine
