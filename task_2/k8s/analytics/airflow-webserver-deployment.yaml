@@ -41,7 +41,7 @@ spec:
                 name: airflow-secret
             - configMapRef:
                 name: airflow-config
-          command: ["webserver"]
+          command: ["bash", "-c", "airflow webserver"]
           ports:
             - containerPort: 8080
           volumeMounts:
