@@ -23,6 +23,19 @@ spec:
           envFrom:
             - secretRef:
                 name: airflow-secret
+        - name: copy-dags
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              for f in /dags-config/*.py; do [ -f "$f" ] && cp -L "$f" /opt/airflow/dags/; done
+              ls -la /opt/airflow/dags/
+          volumeMounts:
+            - name: dags-config
+              mountPath: /dags-config
+            - name: dags
+              mountPath: /opt/airflow/dags
       containers:
         - name: webserver
           image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest
@@ -56,5 +69,7 @@ spec:
               cpu: "1000m"
       volumes:
         - name: dags
+          emptyDir: {}
+        - name: dags-config
           configMap:
             name: airflow-dags
