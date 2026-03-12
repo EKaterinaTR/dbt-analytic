@@ -29,16 +29,14 @@ From repo root:
 
 ```bash
 cd task_2/scripts
-export REGISTRY=your-registry   # e.g. docker.io/myuser or ghcr.io/ekaterinatr
+export REGISTRY=ghcr.io/ekaterinatr/dbt-analytic   # по умолчанию уже этот путь (lowercase для GHCR)
 bash build-push-images.sh
 ```
 
-Then set the same image names in the manifests (or use the default `ghcr.io/ekaterinatr/dbt-analytic/...` already in the repo):
+В манифестах уже указан строчный образ: `ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest` и `task2-sensor:latest`.
 
-- `task_2/k8s/app/sensor-deployment.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest` (or $REGISTRY/…)
-- `task_2/k8s/analytics/airflow-*.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest` (or $REGISTRY/…)
-- `task_2/k8s/analytics/airflow-webserver-deployment.yaml` → same
-- `task_2/k8s/analytics/airflow-scheduler-deployment.yaml` → same
+- `task_2/k8s/app/sensor-deployment.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest`
+- `task_2/k8s/analytics/airflow-*.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest`
 
 ## Optional: Ingress
 

@@ -1,5 +1,5 @@
 # Сборка образов и публикация в GitHub Container Registry (ghcr.io).
-# После успешного прогона образы: ghcr.io/<owner>/<repo>/task2-sensor, task2-airflow
+# Образы всегда в lowercase: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor, task2-airflow
 
 name: Build and push images
 
@@ -10,6 +10,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # Явный строчный путь (GHCR требует lowercase)
+  IMAGE_BASE: ghcr.io/ekaterinatr/dbt-analytic
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -37,7 +39,7 @@ jobs:
         id: meta-sensor
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor
+          images: ${{ env.IMAGE_BASE }}/task2-sensor
           tags: |
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
@@ -54,7 +56,7 @@ jobs:
         id: meta-airflow
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow
+          images: ${{ env.IMAGE_BASE }}/task2-airflow
           tags: |
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}

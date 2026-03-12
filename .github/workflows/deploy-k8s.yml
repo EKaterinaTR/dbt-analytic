@@ -19,6 +19,8 @@ jobs:
     # environment: production  # раскомментировать для защиты и секретов через GitHub Environments
     env:
       REGISTRY: ghcr.io
+      # Строчный путь к образам (GHCR требует lowercase)
+      IMAGE_BASE: ghcr.io/ekaterinatr/dbt-analytic
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
@@ -53,21 +55,19 @@ jobs:
         run: |
           set -e
           cd task_2/k8s/app
-          SENSOR_IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}"
+          SENSOR_IMG="${{ env.IMAGE_BASE }}/task2-sensor:${{ steps.tag.outputs.tag }}"
           for f in *.yaml; do
             sed -i "s|ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest|$SENSOR_IMG|g" "$f"
             sed -i "s|ghcr.io/EKaterinaTR/dbt-analytic/task2-sensor:latest|$SENSOR_IMG|g" "$f"
             sed -i "s|your-registry/task2-sensor:latest|$SENSOR_IMG|g" "$f"
           done
           kustomize build . | kubectl apply -f -
-        env:
-          REGISTRY: ghcr.io
 
       - name: Deploy Analytics (PostgreSQL + Airflow)
         run: |
           set -e
           cd task_2/k8s/analytics
-          IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow:${{ steps.tag.outputs.tag }}"
+          IMG="${{ env.IMAGE_BASE }}/task2-airflow:${{ steps.tag.outputs.tag }}"
           for f in *.yaml; do
             sed -i "s|ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest|$IMG|g" "$f"
             sed -i "s|ghcr.io/EKaterinaTR/dbt-analytic/task2-airflow:latest|$IMG|g" "$f"
