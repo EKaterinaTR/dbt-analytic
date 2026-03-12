@@ -6,6 +6,8 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  # Selectel: basic —
+  storageClassName: basic
   resources:
     requests:
       storage: 2Gi
