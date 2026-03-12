@@ -19,6 +19,7 @@ jobs:
     # environment: production  # раскомментировать для защиты и секретов через GitHub Environments
     env:
       REGISTRY: ghcr.io
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
@@ -41,6 +42,7 @@ jobs:
 
       - name: Set up kubeconfig
         run: |
+          set -e
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
@@ -49,20 +51,39 @@ jobs:
 
       - name: Deploy App (sensor + MongoDB)
         run: |
+          set -e
           cd task_2/k8s/app
-          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest=${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}
+          SENSOR_IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-sensor:${{ steps.tag.outputs.tag }}"
+          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest="$SENSOR_IMG"
+          kustomize edit set image ghcr.io/EKaterinaTR/dbt-analytic/task2-sensor:latest="$SENSOR_IMG"
+          kustomize edit set image your-registry/task2-sensor:latest="$SENSOR_IMG"
           kustomize build . | kubectl apply -f -
         env:
           REGISTRY: ghcr.io
 
       - name: Deploy Analytics (PostgreSQL + Airflow)
         run: |
+          set -e
           cd task_2/k8s/analytics
           IMG="${{ env.REGISTRY }}/${{ github.repository }}/task2-airflow:${{ steps.tag.outputs.tag }}"
-          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest=$IMG
+          kustomize edit set image ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest="$IMG"
+          kustomize edit set image ghcr.io/EKaterinaTR/dbt-analytic/task2-airflow:latest="$IMG"
+          kustomize edit set image your-registry/task2-airflow:latest="$IMG"
           kustomize build . | kubectl apply -f -
         # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow
 
+      - name: Verify applied image is lowercase
+        run: |
+          set -e
+          APPLIED=$(kubectl get deployment airflow-webserver -n task2-analytics -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "Applied image: $APPLIED"
+          if echo "$APPLIED" | grep -q '[A-Z]'; then
+            echo "ERROR: Image contains uppercase (invalid for GHCR): $APPLIED"
+            exit 1
+          fi
+          echo "Image is valid (lowercase)."
+
       - name: Restart Airflow deployments (ensure new image is pulled)
         run: |
+          set -e
           kubectl rollout restart deployment/airflow-webserver deployment/airflow-scheduler -n task2-analytics
