@@ -63,18 +63,6 @@ jobs:
           done
           kustomize build . | kubectl apply -f -
 
-      - name: Create/Update Airflow websecret
-        run: |
-          set -e
-          # Требуется секрет репозитория AIRFLOW_WEBSERVER_SECRET_KEY
-          if [ -z "${{ secrets.AIRFLOW_WEBSERVER_SECRET_KEY }}" ]; then
-            echo "AIRFLOW_WEBSERVER_SECRET_KEY is not set in GitHub Secrets"
-            exit 1
-          fi
-          kubectl -n task2-analytics delete secret airflow-web-secret --ignore-not-found
-          kubectl -n task2-analytics create secret generic airflow-web-secret \
-            --from-literal=AIRFLOW__WEBSERVER__SECRET_KEY='${{ secrets.AIRFLOW_WEBSERVER_SECRET_KEY }}'
-
       - name: Deploy Analytics (PostgreSQL + Airflow)
         run: |
           set -e
@@ -87,6 +75,17 @@ jobs:
           done
           kustomize build . | kubectl apply -f -
         # Рекомендуется: дождаться завершения airflow-db-init Job перед использованием Airflow
+
+      - name: Create/Update Airflow websecret
+        run: |
+          set -e
+          if [ -z "${{ secrets.AIRFLOW_WEBSERVER_SECRET_KEY }}" ]; then
+            echo "AIRFLOW_WEBSERVER_SECRET_KEY is not set in GitHub Secrets"
+            exit 1
+          fi
+          kubectl -n task2-analytics delete secret airflow-web-secret --ignore-not-found
+          kubectl -n task2-analytics create secret generic airflow-web-secret \
+            --from-literal=AIRFLOW__WEBSERVER__SECRET_KEY='${{ secrets.AIRFLOW_WEBSERVER_SECRET_KEY }}'
 
       - name: Verify applied image is lowercase
         run: |
