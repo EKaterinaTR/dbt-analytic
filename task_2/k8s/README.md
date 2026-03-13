@@ -91,22 +91,16 @@ bash build-push-images.sh
 
 Все сервисы имеют тип **LoadBalancer** и получают свой EXTERNAL-IP. Дополнительный Ingress не нужен.
 
-[Load Balancers — Selectel](https://docs.selectel.ru/en/managed-kubernetes/networks/load-balancers/)
-
 ### MongoDB, PostgreSQL, Airflow и Sensor API (LoadBalancer)
-
-Сервисы БД и приложений имеют тип **LoadBalancer** и доступны из сети по своему EXTERNAL-IP (namespace у каждого свой: task2-app / task2-analytics):
 
 - **MongoDB:** порт **27017** — `kubectl get svc -n task2-app mongodb`
 - **PostgreSQL:** порт **5432** — `kubectl get svc -n task2-analytics postgres`
 - **Airflow UI:** порт **8080** — `kubectl get svc -n task2-analytics airflow-webserver`
 - **Sensor API (Swagger):** порт **8000** — `kubectl get svc -n task2-app sensor-service`
 
-EXTERNAL-IP выдаётся облаком каждому сервису после деплоя (подождите 1–2 минуты после `kubectl apply`).
+EXTERNAL-IP выдаётся облаком после деплоя (подождите 1–2 минуты; при исчерпании квоты floating IP — см. Events в `kubectl describe svc`).
 
 ### Шаблон URL для презентации / отчёта
-
-После деплоя подставьте EXTERNAL-IP из `kubectl get svc`:
 
 | Поле | Значение | Пример |
 |------|----------|--------|
@@ -116,12 +110,8 @@ EXTERNAL-IP выдаётся облаком каждому сервису пос
 | **PostgreSQL URL** | Строка подключения к PostgreSQL | `postgresql://airflow:airflow@<PG-EXTERNAL-IP>:5432/analytics` |
 | **Airflow User** | Логин | `admin` |
 | **Airflow Password** | Пароль | `admin` |
-| **Elementary EDR report URL** | Если поднимаете отдельный отчёт Elementary | укажите URL или «генерируется в DBT» |
-| **Презентация URL** | Ссылка на слайды | по желанию |
 
-Где взять:
-- **&lt;AIRFLOW-EXTERNAL-IP&gt;** — EXTERNAL-IP сервиса `airflow-webserver` (task2-analytics). **&lt;SENSOR-EXTERNAL-IP&gt;** — сервиса `sensor-service` (task2-app).
-- **&lt;MONGO-EXTERNAL-IP&gt;** и **&lt;PG-EXTERNAL-IP&gt;** — EXTERNAL-IP сервисов `mongodb` (task2-app) и `postgres` (task2-analytics). Все четыре — через `kubectl get svc -n task2-app` и `kubectl get svc -n task2-analytics`.
+**&lt;AIRFLOW-EXTERNAL-IP&gt;** и **&lt;SENSOR-EXTERNAL-IP&gt;** — EXTERNAL-IP сервисов `airflow-webserver` и `sensor-service`. **&lt;MONGO-EXTERNAL-IP&gt;** и **&lt;PG-EXTERNAL-IP&gt;** — сервисов `mongodb` и `postgres`. Все — через `kubectl get svc -n task2-app` и `kubectl get svc -n task2-analytics`.
 
 Для доступа только с localhost можно использовать port-forward (см. раздел «Подключение к сервисам» ниже).
 
