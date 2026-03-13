@@ -87,63 +87,13 @@ bash build-push-images.sh
 - `task_2/k8s/app/sensor-deployment.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-sensor:latest`
 - `task_2/k8s/analytics/airflow-*.yaml` → `image: ghcr.io/ekaterinatr/dbt-analytic/task2-airflow:latest`
 
-## Optional: Ingress и доступ из сети
+## Доступ из сети (LoadBalancer)
 
-Чтобы все сервисы были доступны по URL из сети (для презентации, отчёта, проверки):
+Все сервисы имеют тип **LoadBalancer** и получают свой EXTERNAL-IP. Дополнительный Ingress не нужен.
 
-### Selectel Managed Kubernetes (MKS)
+[Load Balancers — Selectel](https://docs.selectel.ru/en/managed-kubernetes/networks/load-balancers/)
 
-В Selectel для доступа из интернета можно использовать:
-
-| Способ | Когда использовать | Плюсы |
-|--------|--------------------|--------|
-| **LoadBalancer** | Один сервис на один публичный IP | Проще всего: в манифесте указать `type: LoadBalancer` — Selectel создаст балансировщик и выдаст публичный IP. |
-| **Ingress** | Несколько HTTP/HTTPS сервисов на один IP | Один IP для Airflow и Sensor API, маршрутизация по домену/пути, возможность TLS. Рекомендуется для веб-интерфейсов и API. |
-| **LoadBalancer (БД)** | MongoDB и PostgreSQL — тип LoadBalancer | У каждого свой EXTERNAL-IP, доступ из сети по портам 27017 и 5432. |
-| **TCP через Ingress** | MongoDB/PostgreSQL через тот же Ingress | Нужна настройка ConfigMap Ingress Controller (tcp-services). Сложнее, но один вход для всего. |
-
-**Рекомендация для текущей архитектуры:**
-
-- **Airflow UI и Sensor API (Swagger)** — **Ingress** (один публичный IP, два хоста: `airflow.<IP>.nip.io` и `sensor-api.<IP>.nip.io`). В панели Selectel: вкладка «Приложения» → установить **Nginx Ingress Controller**.
-- **MongoDB и PostgreSQL** — сервисы типа **LoadBalancer** (отдельный EXTERNAL-IP на каждую БД), доступ из сети по портам 27017 и 5432.
-
-**Как получить URL API (Swagger) в Selectel:**
-
-1. Установите **Nginx Ingress Controller** через вкладку «Приложения» в панели управления кластером. [2]
-2. Дождитесь появления у сервиса Ingress публичного **EXTERNAL-IP** (балансировщик создаётся автоматически):
-   ```bash
-   kubectl get svc -A | grep -i ingress
-   ```
-3. В `task_2/k8s/ingress.yaml` укажите хосты через **nip.io**: `airflow.<EXTERNAL-IP>.nip.io` и `sensor-api.<EXTERNAL-IP>.nip.io`.
-4. Примените Ingress: `kubectl apply -f task_2/k8s/ingress.yaml`.
-5. **Swagger:** `http://sensor-api.<EXTERNAL-IP>.nip.io/docs`, **Airflow:** `http://airflow.<EXTERNAL-IP>.nip.io`.
-
-[1] [Load Balancers — Selectel](https://docs.selectel.ru/en/managed-kubernetes/networks/load-balancers/)  
-[2] [Set up Ingress — Selectel](https://docs.selectel.ru/en/managed-kubernetes/networks/set-up-ingress/)  
-[4] [Expose TCP services — Selectel](https://docs.selectel.ru/en/managed-kubernetes/networks/expose-tcp-services/)
-
----
-
-### 1. Включить доступ по HTTP (Airflow + Sensor API / Swagger)
-
-В `task_2/k8s/ingress.yaml` замените хост на свой адрес:
-- либо домен (например `airflow.mydomain.com`),
-- либо **nip.io**: если внешний IP Ingress-контроллера равен `1.2.3.4`, укажите хосты `airflow.1.2.3.4.nip.io` и `sensor-api.1.2.3.4.nip.io`.
-
-Узнать внешний IP (после установки Ingress-контроллера):
-
-```bash
-kubectl get svc -A | grep -i ingress
-# или для nginx: kubectl get svc -n ingress-nginx
-```
-
-Применить Ingress:
-
-```bash
-kubectl apply -f task_2/k8s/ingress.yaml
-```
-
-### 2. MongoDB, PostgreSQL, Airflow и Sensor API (LoadBalancer)
+### MongoDB, PostgreSQL, Airflow и Sensor API (LoadBalancer)
 
 Сервисы БД и приложений имеют тип **LoadBalancer** и доступны из сети по своему EXTERNAL-IP (namespace у каждого свой: task2-app / task2-analytics):
 
@@ -152,17 +102,11 @@ kubectl apply -f task_2/k8s/ingress.yaml
 - **Airflow UI:** порт **8080** — `kubectl get svc -n task2-analytics airflow-webserver`
 - **Sensor API (Swagger):** порт **8000** — `kubectl get svc -n task2-app sensor-service`
 
-Узнать IP ноды (для подключения снаружи):
+EXTERNAL-IP выдаётся облаком каждому сервису после деплоя (подождите 1–2 минуты после `kubectl apply`).
 
-```bash
-kubectl get nodes -o wide
-```
+### Шаблон URL для презентации / отчёта
 
-Используйте **EXTERNAL-IP** или **INTERNAL-IP** одной из нод (с той же сети, откуда подключаетесь).
-
-### 3. Шаблон URL для презентации / отчёта
-
-После деплоя и применения Ingress подставьте свои значения (IP или домен) и заполните:
+После деплоя подставьте EXTERNAL-IP из `kubectl get svc`:
 
 | Поле | Значение | Пример |
 |------|----------|--------|
@@ -179,7 +123,7 @@ kubectl get nodes -o wide
 - **&lt;AIRFLOW-EXTERNAL-IP&gt;** — EXTERNAL-IP сервиса `airflow-webserver` (task2-analytics). **&lt;SENSOR-EXTERNAL-IP&gt;** — сервиса `sensor-service` (task2-app).
 - **&lt;MONGO-EXTERNAL-IP&gt;** и **&lt;PG-EXTERNAL-IP&gt;** — EXTERNAL-IP сервисов `mongodb` (task2-app) и `postgres` (task2-analytics). Все четыре — через `kubectl get svc -n task2-app` и `kubectl get svc -n task2-analytics`.
 
-Если Ingress не используется, для Airflow и Swagger можно продолжать использовать port-forward (доступ только с localhost).
+Для доступа только с localhost можно использовать port-forward (см. раздел «Подключение к сервисам» ниже).
 
 ## DBT
 
