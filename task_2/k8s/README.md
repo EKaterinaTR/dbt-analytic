@@ -62,11 +62,12 @@ Deploy Task 2 (sensor app + analytics Airflow/PostgreSQL/dbt) to a Kubernetes cl
      **`http://sensor-api.<ВАШ-IP>.nip.io/docs`**  
      Базовый URL API: **`http://sensor-api.<ВАШ-IP>.nip.io`** (например для вызова `POST /sensors/seed` или `POST /measurements/generate`).
 
-   **MongoDB и PostgreSQL** уже доступны по NodePort без Ingress. Узнайте IP любой ноды:
+   **MongoDB и PostgreSQL** выставлены как **LoadBalancer** — у каждого свой EXTERNAL-IP. Узнайте IP:
    ```bash
-   kubectl get nodes -o wide
+   kubectl get svc -n task2-app mongodb
+   kubectl get svc -n task2-analytics postgres
    ```
-   Подключение: **MongoDB** — `mongodb://root:example@<NODE-IP>:30917/?authSource=admin`, **PostgreSQL** — `postgresql://airflow:airflow@<NODE-IP>:30432/analytics`.
+   Подключение: **MongoDB** — `mongodb://root:example@<MONGO-EXTERNAL-IP>:27017/?authSource=admin`, **PostgreSQL** — `postgresql://airflow:airflow@<PG-EXTERNAL-IP>:5432/analytics`.
 
    Итоговые URL для шаблона презентации подставьте из раздела «Optional: Ingress и доступ из сети» ниже.
 
@@ -122,13 +123,13 @@ bash build-push-images.sh
 |--------|--------------------|--------|
 | **LoadBalancer** | Один сервис на один публичный IP | Проще всего: в манифесте указать `type: LoadBalancer` — Selectel создаст балансировщик и выдаст публичный IP. |
 | **Ingress** | Несколько HTTP/HTTPS сервисов на один IP | Один IP для Airflow и Sensor API, маршрутизация по домену/пути, возможность TLS. Рекомендуется для веб-интерфейсов и API. |
-| **NodePort** | Уже настроено (порты 30917, 30432) | Для доступа снаружи нодам нужен публичный IP или NAT на облачном роутере. Подходит для отладки. |
+| **LoadBalancer (БД)** | MongoDB и PostgreSQL — тип LoadBalancer | У каждого свой EXTERNAL-IP, доступ из сети по портам 27017 и 5432. |
 | **TCP через Ingress** | MongoDB/PostgreSQL через тот же Ingress | Нужна настройка ConfigMap Ingress Controller (tcp-services). Сложнее, но один вход для всего. |
 
 **Рекомендация для текущей архитектуры:**
 
 - **Airflow UI и Sensor API (Swagger)** — **Ingress** (один публичный IP, два хоста: `airflow.<IP>.nip.io` и `sensor-api.<IP>.nip.io`). В панели Selectel: вкладка «Приложения» → установить **Nginx Ingress Controller**.
-- **MongoDB и PostgreSQL** — либо оставить **NodePort** (если у нод есть доступ в интернет через NAT), либо вынести за Ingress и сделать для каждого сервис типа **LoadBalancer**, чтобы получить отдельный публичный IP без возни с TCP-ConfigMap.
+- **MongoDB и PostgreSQL** — сервисы типа **LoadBalancer** (отдельный EXTERNAL-IP на каждую БД), доступ из сети по портам 27017 и 5432.
 
 **Как получить URL API (Swagger) в Selectel:**
 
@@ -166,12 +167,12 @@ kubectl get svc -A | grep -i ingress
 kubectl apply -f task_2/k8s/ingress.yaml
 ```
 
-### 2. MongoDB и PostgreSQL (NodePort)
+### 2. MongoDB и PostgreSQL (LoadBalancer)
 
-Сервисы MongoDB и Postgres уже переведены на **NodePort** и доступны с любой ноды кластера:
+Сервисы MongoDB и Postgres имеют тип **LoadBalancer** и доступны из сети по своему EXTERNAL-IP:
 
-- **MongoDB:** порт **30917**
-- **PostgreSQL:** порт **30432**
+- **MongoDB:** порт **27017** (EXTERNAL-IP смотрите: `kubectl get svc -n task2-app mongodb`)
+- **PostgreSQL:** порт **5432** (EXTERNAL-IP: `kubectl get svc -n task2-analytics postgres`)
 
 Узнать IP ноды (для подключения снаружи):
 
@@ -188,8 +189,8 @@ kubectl get nodes -o wide
 | Поле | Значение | Пример |
 |------|----------|--------|
 | **Swagger URL** | Документация API датчиков | `http://sensor-api.<ВАШ-IP>.nip.io/docs` |
-| **MongoDB URL** | Строка подключения к MongoDB | `mongodb://root:example@<NODE-IP>:30917/?authSource=admin` |
-| **PostgreSQL URL** | Строка подключения к PostgreSQL | `postgresql://airflow:airflow@<NODE-IP>:30432/analytics` |
+| **MongoDB URL** | Строка подключения к MongoDB | `mongodb://root:example@<MONGO-EXTERNAL-IP>:27017/?authSource=admin` |
+| **PostgreSQL URL** | Строка подключения к PostgreSQL | `postgresql://airflow:airflow@<PG-EXTERNAL-IP>:5432/analytics` |
 | **Airflow URL** | Веб-интерфейс Airflow | `http://airflow.<ВАШ-IP>.nip.io` |
 | **Airflow User** | Логин | `admin` |
 | **Airflow Password** | Пароль | `admin` |
@@ -198,7 +199,7 @@ kubectl get nodes -o wide
 
 Где взять:
 - **&lt;ВАШ-IP&gt;** — EXTERNAL-IP Ingress-контроллера (для Swagger и Airflow по HTTP).
-- **&lt;NODE-IP&gt;** — IP любой ноды кластера (для MongoDB и PostgreSQL по NodePort).
+- **&lt;MONGO-EXTERNAL-IP&gt;** и **&lt;PG-EXTERNAL-IP&gt;** — EXTERNAL-IP сервисов `mongodb` (task2-app) и `postgres` (task2-analytics) после `kubectl get svc`.
 
 Если Ingress не используется, для Airflow и Swagger можно продолжать использовать port-forward (доступ только с localhost).
 
