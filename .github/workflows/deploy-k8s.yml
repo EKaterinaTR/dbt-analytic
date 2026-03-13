@@ -106,10 +106,10 @@ jobs:
           set -e
           kubectl rollout restart deployment/airflow-webserver deployment/airflow-scheduler -n task2-analytics
 
-      - name: Apply Ingress (optional, если задан ingress_ip или переменная INGRESS_IP)
-        if: github.event.inputs.ingress_ip != '' || vars.INGRESS_IP != ''
+      - name: Apply Ingress (optional: input, переменная INGRESS_IP или секрет INGRESS_IP)
+        if: github.event.inputs.ingress_ip != '' || vars.INGRESS_IP != '' || secrets.INGRESS_IP != ''
         run: |
           set -e
-          INGRESS_IP="${{ github.event.inputs.ingress_ip || vars.INGRESS_IP }}"
+          INGRESS_IP="${{ github.event.inputs.ingress_ip || vars.INGRESS_IP || secrets.INGRESS_IP }}"
           echo "Using INGRESS_IP: $INGRESS_IP"
           sed "s/__INGRESS_IP__/$INGRESS_IP/g" task_2/k8s/ingress.yaml | kubectl apply -f -
