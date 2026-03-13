@@ -1,5 +1,5 @@
 # Optional: Ingress for external access to Sensor API and Airflow UI.
-# Adjust host, annotations and backend service names to match your cluster (nginx, traefik, etc.).
+# При деплое подставьте свой IP вместо __INGRESS_IP__ (через input в GitHub Actions или через sed локально).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -12,7 +12,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: airflow.task2.example.com
+    - host: airflow.__INGRESS_IP__.nip.io
       http:
         paths:
           - path: /
@@ -24,7 +24,6 @@ spec:
                 port:
                   number: 8080
 ---
-# Ingress for sensor API (in app namespace). Use one Ingress or split by host.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -34,7 +33,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: sensor-api.task2.example.com
+    - host: sensor-api.__INGRESS_IP__.nip.io
       http:
         paths:
           - path: /
